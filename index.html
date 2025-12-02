@@ -1,0 +1,452 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Home, ShoppingBag, Bell, User, Search, Camera, MessageCircle, ShoppingCart, 
+  Settings, CreditCard, Truck, Star, FileText, Gift, ChevronRight, Plus, Trash, X 
+} from 'lucide-react';
+
+// --- 模擬數據生成 ---
+const generateProducts = () => {
+  const categories = ['3C電子', '男裝', '女裝', '居家', '美妝', '母嬰'];
+  return Array.from({ length: 100 }).map((_, i) => ({
+    id: i + 1,
+    title: `熱銷商品範例 - ${categories[i % categories.length]} 第 ${i + 1} 號`,
+    price: Math.floor(Math.random() * 2000) + 99,
+    sold: Math.floor(Math.random() * 5000),
+    image: `https://picsum.photos/200?random=${i}`,
+    category: categories[i % categories.length],
+    isAd: i % 10 === 0
+  }));
+};
+
+// --- 元件：底部導航 ---
+const BottomNav = ({ currentTab, setCurrentTab }) => {
+  const navItems = [
+    { id: 'home', icon: Home, label: '蝦皮' },
+    { id: 'mall', icon: ShoppingBag, label: '商城' },
+    { id: 'live', icon: Camera, label: '直播' }, // 模擬直播圖標
+    { id: 'notify', icon: Bell, label: '通知', badge: 6 },
+    { id: 'me', icon: User, label: '我的' },
+  ];
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-between px-4 py-2 z-50 pb-safe">
+      {navItems.map((item) => (
+        <button 
+          key={item.id}
+          onClick={() => setCurrentTab(item.id)}
+          className={`flex flex-col items-center gap-1 ${currentTab === item.id ? 'text-[#ee4d2d]' : 'text-gray-500'}`}
+        >
+          <div className="relative">
+            <item.icon size={24} strokeWidth={currentTab === item.id ? 2.5 : 2} />
+            {item.badge && (
+              <span className="absolute -top-1 -right-2 bg-[#ee4d2d] text-white text-[10px] px-1.5 rounded-full border border-white">
+                {item.badge}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px]">{item.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// --- 元件：商品卡片 ---
+const ProductCard = ({ product, onAdd }) => (
+  <div className="bg-white border border-gray-100 pb-2 hover:shadow-md transition-shadow cursor-pointer">
+    <div className="relative aspect-square">
+      <img src={product.image} alt={product.title} className="w-full h-full object-cover" />
+      {product.isAd && (
+        <div className="absolute top-0 right-0 bg-yellow-400 text-xs px-1 font-bold">廣告</div>
+      )}
+      <div className="absolute bottom-0 left-0 bg-[#ee4d2d] text-white text-[10px] px-1">
+        免費運送
+      </div>
+    </div>
+    <div className="p-2">
+      <h3 className="text-sm text-gray-800 line-clamp-2 min-h-[40px] leading-tight mb-2">
+        {product.title}
+      </h3>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-[#ee4d2d] font-medium">
+          <span className="text-xs">$</span>
+          <span className="text-lg">{product.price}</span>
+        </span>
+        <span className="text-[10px] text-gray-500">已售出 {product.sold > 1000 ? (product.sold/1000).toFixed(1) + 'k' : product.sold}</span>
+      </div>
+    </div>
+    <button 
+      onClick={() => onAdd(product)}
+      className="w-full mt-2 py-1 text-[#ee4d2d] border border-[#ee4d2d] text-xs"
+    >
+      加入購物車
+    </button>
+  </div>
+);
+
+// --- 管理員面板 ---
+const AdminPanel = ({ coupons, setCoupons, products }) => {
+  const [newCode, setNewCode] = useState('');
+  const [discount, setDiscount] = useState('');
+
+  const handleAddCoupon = () => {
+    if(!newCode || !discount) return;
+    setCoupons([...coupons, { code: newCode, discount: parseInt(discount), id: Date.now() }]);
+    setNewCode('');
+    setDiscount('');
+  };
+
+  return (
+    <div className="p-4 bg-gray-50 min-h-screen pb-20">
+      <h2 className="text-xl font-bold mb-4 text-[#ee4d2d]">管理員後台</h2>
+      
+      {/* 數據概覽 */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-gray-500 text-sm">總商品數</div>
+          <div className="text-2xl font-bold">{products.length}</div>
+        </div>
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-gray-500 text-sm">活躍優惠券</div>
+          <div className="text-2xl font-bold">{coupons.length}</div>
+        </div>
+      </div>
+
+      {/* 優惠券管理 */}
+      <div className="bg-white p-4 rounded shadow mb-6">
+        <h3 className="font-bold mb-3 flex items-center gap-2"><Gift size={16}/> 新增優惠券</h3>
+        <div className="flex gap-2 mb-2">
+          <input 
+            type="text" 
+            placeholder="優惠碼 (例: VIP888)" 
+            className="border p-2 flex-1 rounded text-sm"
+            value={newCode}
+            onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+          />
+          <input 
+            type="number" 
+            placeholder="折抵金額" 
+            className="border p-2 w-24 rounded text-sm"
+            value={discount}
+            onChange={(e) => setDiscount(e.target.value)}
+          />
+        </div>
+        <button 
+          onClick={handleAddCoupon}
+          className="w-full bg-[#ee4d2d] text-white py-2 rounded text-sm font-bold"
+        >
+          建立優惠券
+        </button>
+
+        <div className="mt-4 space-y-2">
+          {coupons.map(c => (
+            <div key={c.id} className="flex justify-between items-center bg-orange-50 p-2 rounded border border-orange-100">
+              <div>
+                <span className="font-bold text-[#ee4d2d]">{c.code}</span>
+                <span className="text-xs text-gray-500 ml-2">折 ${c.discount}</span>
+              </div>
+              <button 
+                onClick={() => setCoupons(coupons.filter(x => x.id !== c.id))}
+                className="text-gray-400 hover:text-red-500"
+              >
+                <Trash size={14}/>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 主程式 ---
+export default function ShopeeClone() {
+  const [currentTab, setCurrentTab] = useState('home');
+  const [products] = useState(generateProducts());
+  const [cart, setCart] = useState([]);
+  const [coupons, setCoupons] = useState([{ code: 'SHOPEE2025', discount: 100, id: 1 }]);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showCartModal, setShowCartModal] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponInput, setCouponInput] = useState('');
+
+  // 購物車邏輯
+  const addToCart = (product) => {
+    setCart([...cart, product]);
+    alert('已加入購物車');
+  };
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+  const finalTotal = appliedCoupon ? Math.max(0, cartTotal - appliedCoupon.discount) : cartTotal;
+
+  // 渲染不同的視圖
+  const renderContent = () => {
+    if (isAdminMode) return <AdminPanel products={products} coupons={coupons} setCoupons={setCoupons} />;
+
+    switch (currentTab) {
+      case 'home':
+        return (
+          <div className="bg-gray-100 min-h-screen pb-20">
+            {/* Header */}
+            <header className="bg-gradient-to-b from-[#f53d2d] to-[#f63] p-3 sticky top-0 z-40">
+              <div className="flex gap-2 items-center mb-2">
+                 <div className="flex-1 bg-white rounded-sm h-10 flex items-center px-2">
+                   <Search className="text-gray-400 w-5 h-5" />
+                   <input type="text" placeholder="LG 除濕機" className="flex-1 ml-2 outline-none text-sm placeholder-[#ee4d2d]" />
+                   <Camera className="text-gray-400 w-5 h-5" />
+                 </div>
+                 <div className="relative" onClick={() => setShowCartModal(true)}>
+                   <ShoppingCart className="text-white w-6 h-6" />
+                   {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-white text-[#ee4d2d] text-xs rounded-full w-4 h-4 flex items-center justify-center border border-[#ee4d2d]">{cart.length}</span>}
+                 </div>
+                 <MessageCircle className="text-white w-6 h-6" />
+              </div>
+            </header>
+
+            {/* Icons Grid (Mocking Screenshot 1) */}
+            <div className="bg-white p-2 grid grid-cols-5 gap-2 mb-2 text-[10px] text-center text-gray-600">
+               {['免運無限次', '用券享9折', '免運當日到', '12/12優惠', '查看更多', '蝦皮超市', '蝦皮3C', '蝦皮直播', '蝦皮遊戲', '更多服務'].map((item, idx) => (
+                 <div key={idx} className="flex flex-col items-center gap-1">
+                   <div className="w-10 h-10 rounded-xl border border-gray-100 bg-gray-50 flex items-center justify-center">
+                      {idx === 0 ? <Truck className="text-green-500" size={20}/> : <Gift className="text-[#ee4d2d]" size={20}/>}
+                   </div>
+                   <span>{item}</span>
+                 </div>
+               ))}
+            </div>
+
+            {/* 12.12 Banner Section */}
+             <div className="bg-white mb-2 p-2">
+                <div className="flex justify-between items-end mb-2">
+                   <span className="text-[#ee4d2d] font-bold text-lg">限時特賣</span>
+                   <span className="text-gray-500 text-xs flex items-center">查看全部 <ChevronRight size={12}/></span>
+                </div>
+                <div className="flex gap-2 overflow-x-auto">
+                   {products.slice(0, 4).map(p => (
+                     <div key={p.id} className="min-w-[100px]">
+                       <div className="relative w-full h-24 bg-gray-200">
+                          <img src={p.image} className="w-full h-full object-cover"/>
+                          <div className="absolute bottom-0 left-0 bg-[#ee4d2d]/90 text-white text-xs px-1 w-full text-center">
+                            ${p.price}
+                          </div>
+                       </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
+
+            {/* Product Grid */}
+            <div className="px-1">
+               <div className="bg-white p-2 mb-1 sticky top-[60px] z-30 shadow-sm flex text-sm text-gray-600">
+                  <div className="flex-1 text-[#ee4d2d] border-b-2 border-[#ee4d2d] text-center pb-2 font-bold">綜合排名</div>
+                  <div className="flex-1 text-center pb-2">最新</div>
+                  <div className="flex-1 text-center pb-2">銷量</div>
+                  <div className="flex-1 text-center pb-2">價格</div>
+               </div>
+               <div className="grid grid-cols-2 gap-1">
+                 {products.map(product => (
+                   <ProductCard key={product.id} product={product} onAdd={addToCart} />
+                 ))}
+               </div>
+            </div>
+          </div>
+        );
+
+      case 'me':
+        // Mocking Screenshot 2 (My Account)
+        return (
+          <div className="bg-gray-100 min-h-screen pb-20">
+            {/* Top Profile Section */}
+            <div className="bg-gradient-to-r from-[#eb3349] to-[#f45c43] p-4 text-white">
+               <div className="flex justify-end gap-4 mb-4">
+                 <Settings size={20} />
+                 <ShoppingCart size={20} onClick={() => setShowCartModal(true)}/>
+                 <MessageCircle size={20} />
+               </div>
+               <div className="flex items-center gap-3 mb-6">
+                  <div className="w-14 h-14 bg-gray-200 rounded-full overflow-hidden border-2 border-white">
+                    <User className="w-full h-full text-gray-400 p-2" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-lg">bruce9811123</h2>
+                    <div className="text-xs bg-white/20 px-2 py-0.5 rounded-full inline-block mt-1">金蝦會員 ></div>
+                    <div className="text-xs mt-1 opacity-90">2 粉絲 · 35 關注中</div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Order Status */}
+            <div className="bg-white mb-2 p-3">
+              <div className="flex justify-between items-center mb-3 text-sm">
+                <span className="font-bold">購買清單</span>
+                <span className="text-gray-500 text-xs flex items-center">查看全部 <ChevronRight size={12}/></span>
+              </div>
+              <div className="flex justify-between text-center">
+                {[
+                  {l: '待付款', i: CreditCard}, 
+                  {l: '待出貨', i: FileText}, 
+                  {l: '待收貨', i: Truck, b: 18}, 
+                  {l: '評價', i: Star, b: 30}
+                ].map((item, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-1 relative">
+                    <item.i className="text-gray-600" size={24}/>
+                    {item.b && <span className="absolute -top-1 right-0 bg-[#ee4d2d] text-white text-[10px] rounded-full px-1.5 border border-white">{item.b}</span>}
+                    <span className="text-xs text-gray-600">{item.l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Wallet Section */}
+            <div className="bg-white mb-2 p-3">
+              <h3 className="font-bold text-sm mb-3">我的錢包</h3>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                 <div className="flex flex-col items-center">
+                    <CreditCard className="text-gray-600 mb-1"/>
+                    <span className="text-xs text-gray-600">蝦拼晚點付</span>
+                    <span className="text-[10px] text-[#ee4d2d]">$9,000</span>
+                 </div>
+                 <div className="flex flex-col items-center">
+                    <div className="w-6 h-6 rounded-full border border-yellow-500 text-yellow-500 flex items-center justify-center font-serif font-bold mb-1">S</div>
+                    <span className="text-xs text-gray-600">我的蝦幣</span>
+                    <span className="text-[10px] text-[#ee4d2d]">領更多蝦幣</span>
+                 </div>
+                 <div className="flex flex-col items-center relative">
+                    <FileText className="text-gray-600 mb-1"/>
+                    <span className="absolute top-0 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                    <span className="text-xs text-gray-600">我的優惠券</span>
+                    <span className="text-[10px] text-[#ee4d2d]">50+ 張優惠券</span>
+                 </div>
+              </div>
+            </div>
+            
+            {/* Admin Toggle (Secret) */}
+            <div className="mt-8 p-4">
+               <button 
+                onClick={() => setIsAdminMode(true)}
+                className="w-full bg-gray-800 text-white py-3 rounded shadow"
+               >
+                 進入後台管理系統 (模擬用)
+               </button>
+            </div>
+          </div>
+        );
+
+      case 'notify':
+        return (
+          <div className="bg-gray-100 min-h-screen">
+             <header className="bg-white p-3 text-center sticky top-0 border-b z-40">
+                <div className="flex justify-between items-center text-[#ee4d2d] text-lg font-bold">
+                   <div className="w-8"></div>
+                   <span>通知</span>
+                   <div className="flex gap-3">
+                      <ShoppingCart className="text-[#ee4d2d] w-6 h-6" />
+                      <MessageCircle className="text-[#ee4d2d] w-6 h-6" />
+                   </div>
+                </div>
+             </header>
+             <div className="p-4 text-center text-gray-500 mt-10">
+                <Bell size={48} className="mx-auto mb-2 text-gray-300"/>
+                <p>目前顯示模擬通知 (參考截圖)</p>
+                <div className="mt-4 bg-white p-3 text-left rounded shadow-sm flex gap-3">
+                   <div className="w-12 h-12 bg-orange-100 rounded flex items-center justify-center text-[#ee4d2d]">
+                     <Truck size={24}/>
+                   </div>
+                   <div>
+                     <h4 className="font-bold text-sm">2025-12-07 前至門市取件</h4>
+                     <p className="text-xs text-gray-500 mt-1">請用取件驗證碼 430764 或證件至蝦皮 路竹大仁 - 智取店 門市取貨...</p>
+                   </div>
+                </div>
+             </div>
+          </div>
+        )
+      default:
+        return <div className="p-10 text-center">頁面開發中...</div>;
+    }
+  };
+
+  // 購物車 Modal
+  const CartModal = () => (
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center">
+      <div className="bg-white w-full rounded-t-xl p-4 max-h-[80vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold">購物車 ({cart.length})</h2>
+          <button onClick={() => setShowCartModal(false)}><X/></button>
+        </div>
+        
+        {cart.length === 0 ? (
+          <p className="text-center text-gray-500 py-10">購物車是空的</p>
+        ) : (
+          <>
+            <div className="space-y-4 mb-4">
+              {cart.map((item, idx) => (
+                <div key={idx} className="flex gap-3 border-b pb-2">
+                  <img src={item.image} className="w-20 h-20 object-cover bg-gray-100"/>
+                  <div className="flex-1">
+                    <h4 className="text-sm line-clamp-2 mb-1">{item.title}</h4>
+                    <div className="text-[#ee4d2d] font-bold">${item.price}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* 優惠券輸入 */}
+            <div className="bg-orange-50 p-3 rounded mb-4 border border-orange-100">
+               <div className="text-sm font-bold text-[#ee4d2d] mb-2">平台優惠券</div>
+               <div className="flex gap-2">
+                 <input 
+                   type="text" 
+                   value={couponInput}
+                   onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                   placeholder="輸入優惠碼 (例如: SHOPEE2025)"
+                   className="border p-2 flex-1 rounded text-sm"
+                 />
+                 <button 
+                   onClick={() => {
+                     const valid = coupons.find(c => c.code === couponInput);
+                     if(valid) {
+                       setAppliedCoupon(valid);
+                       alert(`成功套用！折抵 $${valid.discount}`);
+                     } else {
+                       alert('無效的優惠碼');
+                     }
+                   }}
+                   className="bg-[#ee4d2d] text-white px-3 rounded text-sm"
+                 >
+                   套用
+                 </button>
+               </div>
+               {appliedCoupon && <div className="text-xs text-green-600 mt-1">已套用: {appliedCoupon.code} (-${appliedCoupon.discount})</div>}
+            </div>
+
+            <div className="flex justify-between items-center text-lg font-bold border-t pt-4">
+              <span>總金額</span>
+              <span className="text-[#ee4d2d]">${finalTotal}</span>
+            </div>
+            <button className="w-full bg-[#ee4d2d] text-white py-3 mt-4 rounded font-bold">
+              去買單 ({cart.length})
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative font-sans">
+      {renderContent()}
+      {!isAdminMode && <BottomNav currentTab={currentTab} setCurrentTab={setCurrentTab} />}
+      {showCartModal && <CartModal />}
+      
+      {/* 退出管理員模式按鈕 */}
+      {isAdminMode && (
+        <button 
+          onClick={() => setIsAdminMode(false)}
+          className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg z-50"
+        >
+          返回使用者模式
+        </button>
+      )}
+    </div>
+  );
+}
